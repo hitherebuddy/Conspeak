@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Conspeak</string>
+    <string name="notification_channel_name">Audio Streaming</string>
+    <string name="notification_channel_desc">Shows when Conspeak is streaming audio</string>
+    <string name="notification_title">Conspeak Streaming</string>
+    <string name="notification_text">Streaming microphone audio to %s</string>
+    <string name="action_mute">Mute</string>
+    <string name="action_unmute">Unmute</string>
+    <string name="action_stop">Stop</string>
+</resources>

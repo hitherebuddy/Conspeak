@@ -1,0 +1,38 @@
+# Build outputs
+build/
+*.class
+*.jar
+*.war
+
+# Gradle
+.gradle/
+gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Android
+android-app/app/build/
+android-app/build/
+android-app/.gradle/
+android-app/local.properties
+
+# Desktop
+desktop-app/build/
+desktop-app/.gradle/
+
+# Protocol
+protocol/build/
+protocol/.gradle/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets (should never be committed)
+*.keystore
+*.jks
+local.properties
