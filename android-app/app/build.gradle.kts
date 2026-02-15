@@ -66,7 +66,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Opus codec (pure Java implementation)
-    implementation("org.concentus:concentus:1.0.1")
+    implementation("io.github.jaredmdobson:concentus:1.0.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

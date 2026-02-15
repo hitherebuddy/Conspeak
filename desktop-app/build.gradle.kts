@@ -28,7 +28,7 @@ dependencies {
     implementation("org.jmdns:jmdns:3.5.9")
 
     // Opus codec (pure Java)
-    implementation("org.concentus:concentus:1.0.1")
+    implementation("io.github.jaredmdobson:concentus:1.0.2")
 
     // JNA for WASAPI/audio device interaction
     implementation("net.java.dev.jna:jna:5.14.0")
