@@ -24,6 +24,7 @@ import com.conspeak.desktop.network.MdnsAdvertiser
 import com.conspeak.protocol.Constants
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DesktopApp() {
     val scope = rememberCoroutineScope()
@@ -216,7 +217,7 @@ fun DesktopApp() {
                             Text("Audio Level", style = MaterialTheme.typography.labelSmall)
                             Spacer(modifier = Modifier.height(4.dp))
                             LinearProgressIndicator(
-                                progress = { audioLevel },
+                                progress = audioLevel,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(12.dp)
