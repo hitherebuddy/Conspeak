@@ -4,6 +4,9 @@ build/
 *.jar
 *.war
 
+# Allow bundled dependency JARs
+!desktop-app/libs/*.jar
+
 # Gradle
 .gradle/
 gradle/wrapper/gradle-wrapper.jar

@@ -6,8 +6,8 @@ import com.conspeak.protocol.JitterBuffer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.concentus.OpusApplication
-import org.concentus.OpusDecoder
+import io.github.jaredmdobson.concentus.OpusApplication
+import io.github.jaredmdobson.concentus.OpusDecoder
 import org.slf4j.LoggerFactory
 import javax.sound.sampled.*
 

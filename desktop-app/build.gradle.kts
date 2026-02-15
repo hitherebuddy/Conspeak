@@ -9,7 +9,6 @@ group = "com.conspeak"
 version = "1.0.0"
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     google()
@@ -28,8 +27,8 @@ dependencies {
     // mDNS discovery
     implementation("org.jmdns:jmdns:3.5.9")
 
-    // Opus codec (pure Java)
-    implementation("io.github.jaredmdobson:concentus:1.0.2")
+    // Opus codec (pure Java) - bundled JAR for reliable offline builds
+    implementation(files("libs/concentus-1.0.2.jar"))
 
     // JNA for WASAPI/audio device interaction
     implementation("net.java.dev.jna:jna:5.14.0")

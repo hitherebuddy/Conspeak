@@ -1,8 +1,8 @@
 package com.conspeak.android.audio
 
-import org.concentus.OpusApplication
-import org.concentus.OpusEncoder
-import org.concentus.OpusSignal
+import io.github.jaredmdobson.concentus.OpusApplication
+import io.github.jaredmdobson.concentus.OpusEncoder
+import io.github.jaredmdobson.concentus.OpusSignal
 
 /**
  * Wraps the Concentus (pure Java) Opus encoder.
@@ -21,7 +21,7 @@ class OpusEncoderWrapper(
         encoder.bitrate = bitrate
         encoder.signalType = OpusSignal.OPUS_SIGNAL_VOICE
         encoder.complexity = 5 // balanced CPU/quality
-        encoder.isVBR = true
+        encoder.useVBR = true
     }
 
     /**
