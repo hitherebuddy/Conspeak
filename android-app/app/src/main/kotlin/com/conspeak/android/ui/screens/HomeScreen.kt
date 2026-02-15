@@ -30,6 +30,7 @@ import com.conspeak.android.service.AudioStreamService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onNavigateToSettings: () -> Unit) {
     val context = LocalContext.current
@@ -155,7 +156,7 @@ fun HomeScreen(onNavigateToSettings: () -> Unit) {
                         Spacer(modifier = Modifier.height(12.dp))
                         val level = audioLevel?.value ?: 0f
                         LinearProgressIndicator(
-                            progress = { level },
+                            progress = level,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(8.dp)

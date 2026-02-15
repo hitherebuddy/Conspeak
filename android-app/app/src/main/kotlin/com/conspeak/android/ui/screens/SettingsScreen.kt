@@ -91,7 +91,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 )
             }
 
-            HorizontalDivider()
+            Divider()
 
             // Audio source
             Text("Microphone Source", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -125,7 +125,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }
             }
 
-            HorizontalDivider()
+            Divider()
 
             // Audio effects
             Text("Audio Effects", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -157,7 +157,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }
             )
 
-            HorizontalDivider()
+            Divider()
 
             // Gain slider
             Text("Gain: ${"%.1f".format(settings.gain)}x", style = MaterialTheme.typography.titleMedium)
@@ -168,7 +168,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 steps = 38
             )
 
-            HorizontalDivider()
+            Divider()
 
             // Advanced codec settings
             Text("Codec Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
