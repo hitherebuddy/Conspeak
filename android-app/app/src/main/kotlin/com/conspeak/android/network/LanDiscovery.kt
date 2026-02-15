@@ -89,15 +89,24 @@ class LanDiscovery(private val context: Context) {
         }
 
         override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
-            val host = serviceInfo.host?.hostAddress ?: return
-            val port = serviceInfo.port
-
-            // Extract TXT record attributes
+            // Extract TXT record attributes first
             val attrs = serviceInfo.attributes
             val fingerprint = attrs["fingerprint"]?.let { String(it) } ?: ""
             val version = attrs["version"]?.let { String(it).toIntOrNull() } ?: 1
+            val explicitIp = attrs["ip"]?.let { String(it) }
+
+            // Prefer explicit IP from TXT, fallback to host resolution
+            val host = explicitIp ?: serviceInfo.host?.hostAddress
+
+            if (host == null) {
+                Log.w(TAG, "No valid host address for ${serviceInfo.serviceName}")
+                return
+            }
+
+            val port = serviceInfo.port
 
             Log.d(TAG, "Resolved: ${serviceInfo.serviceName} at $host:$port fp=$fingerprint")
+            Log.d(TAG, "  NSD host: ${serviceInfo.host?.hostAddress}, TXT ip: $explicitIp")
 
             val desktop = DiscoveredDesktop(
                 name = serviceInfo.serviceName,

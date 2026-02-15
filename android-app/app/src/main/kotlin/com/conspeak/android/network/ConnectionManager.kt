@@ -88,6 +88,10 @@ class ConnectionManager {
     }
 
     private suspend fun doConnect() {
+        Log.d(TAG, "===== STARTING CONNECTION =====")
+        Log.d(TAG, "  Target: $targetHost:$targetPort")
+        Log.d(TAG, "  Trusted FP: ${peerFingerprintTrusted?.take(16) ?: "none (new pairing)"}")
+        Log.d(TAG, "===============================")
         _state.value = State.CONNECTING
         try {
             // Use certificate pinning when reconnecting to a trusted peer
@@ -98,13 +102,17 @@ class ConnectionManager {
 
             val factory = sslContext.socketFactory
             val rawSocket = Socket()
+            Log.d(TAG, "Connecting socket to $targetHost:$targetPort (timeout=${CONNECT_TIMEOUT_MS}ms)...")
             rawSocket.connect(InetSocketAddress(targetHost, targetPort), CONNECT_TIMEOUT_MS)
+            Log.d(TAG, "TCP socket connected! Local: ${rawSocket.localSocketAddress}, Remote: ${rawSocket.remoteSocketAddress}")
 
             socket = factory.createSocket(rawSocket, targetHost, targetPort, true) as SSLSocket
             socket!!.apply {
                 soTimeout = CONNECT_TIMEOUT_MS // timeout for handshake
                 enabledProtocols = arrayOf("TLSv1.3", "TLSv1.2")
+                Log.d(TAG, "Starting TLS handshake...")
                 startHandshake()
+                Log.d(TAG, "TLS handshake complete! Protocol: ${session?.protocol}, Cipher: ${session?.cipherSuite}")
                 soTimeout = 0 // reset to no timeout for normal reads
             }
 
@@ -131,7 +139,9 @@ class ConnectionManager {
             startReader()
             startKeepalive()
         } catch (e: Exception) {
-            Log.e(TAG, "Connection failed", e)
+            Log.e(TAG, "Connection failed to $targetHost:$targetPort", e)
+            Log.e(TAG, "  Exception type: ${e.javaClass.simpleName}")
+            Log.e(TAG, "  Message: ${e.message}")
             _state.value = State.DISCONNECTED
             if (autoReconnect && peerFingerprintTrusted != null) {
                 scheduleReconnect()

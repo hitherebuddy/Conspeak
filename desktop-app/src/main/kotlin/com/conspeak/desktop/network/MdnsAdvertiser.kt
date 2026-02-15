@@ -3,6 +3,7 @@ package com.conspeak.desktop.network
 import com.conspeak.protocol.Constants
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
+import java.net.Inet4Address
 import java.net.InetAddress
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
@@ -22,13 +23,14 @@ class MdnsAdvertiser {
         certFingerprint: String
     ) {
         try {
-            val addr = InetAddress.getLocalHost()
+            val addr = NetworkUtils.getBestLocalAddress()
             jmdns = JmDNS.create(addr, "conspeak")
 
             val txtMap = mapOf(
                 "version" to Constants.PROTOCOL_VERSION.toString(),
                 "name" to deviceName,
-                "fingerprint" to certFingerprint.take(16)
+                "fingerprint" to certFingerprint.take(16),
+                "ip" to ((addr as? Inet4Address)?.hostAddress ?: addr.hostAddress)
             )
 
             serviceInfo = ServiceInfo.create(
@@ -40,7 +42,9 @@ class MdnsAdvertiser {
             )
 
             jmdns?.registerService(serviceInfo)
-            log.info("mDNS service registered: $deviceName on port $port (${addr.hostAddress})")
+            log.info("mDNS service registered: $deviceName on port $port")
+            log.info("  Advertised address: ${addr.hostAddress} (${addr.hostName})")
+            log.info("  All interfaces: ${NetworkUtils.getAllLocalAddresses()}")
         } catch (e: Exception) {
             log.error("Failed to start mDNS advertiser", e)
         }
@@ -59,7 +63,7 @@ class MdnsAdvertiser {
 
     fun getLocalAddress(): String {
         return try {
-            InetAddress.getLocalHost().hostAddress ?: "unknown"
+            NetworkUtils.getBestLocalAddress().hostAddress ?: "unknown"
         } catch (_: Exception) { "unknown" }
     }
 }

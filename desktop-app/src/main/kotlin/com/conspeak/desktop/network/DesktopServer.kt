@@ -79,12 +79,19 @@ class DesktopServer(
                     wantClientAuth = true
                 }
 
+                val bindAddress = (serverSocket as java.net.ServerSocket).inetAddress
                 _state.value = State.LISTENING
-                log.info("Listening on port $port")
+                log.info("Server socket bound to: ${bindAddress.hostAddress}:$port")
+                log.info("  (0.0.0.0 = all interfaces, listening on all network adapters)")
 
                 while (isActive) {
                     val socket = serverSocket!!.accept() as SSLSocket
-                    log.info("Client connected from ${socket.remoteSocketAddress}")
+                    val remoteAddr = socket.remoteSocketAddress
+                    log.info("===== NEW CLIENT CONNECTION =====")
+                    log.info("  Remote: $remoteAddr")
+                    log.info("  Local endpoint: ${socket.localSocketAddress}")
+                    log.info("  Protocol: ${socket.session?.protocol}")
+                    log.info("==================================")
                     handleClient(socket)
                 }
             } catch (e: Exception) {
@@ -110,9 +117,12 @@ class DesktopServer(
             if (peerCerts.isNotEmpty()) {
                 val cert = peerCerts[0] as java.security.cert.X509Certificate
                 clientCertFingerprint = CryptoUtils.getCertFingerprint(cert)
+                log.info("Client cert fingerprint: ${clientCertFingerprint.take(16)}...")
+            } else {
+                log.warn("Client did not send certificate")
             }
-        } catch (_: Exception) {
-            // Client may not have sent cert
+        } catch (e: Exception) {
+            log.warn("Could not get client certificate: ${e.message}")
         }
 
         _state.value = State.CONNECTED

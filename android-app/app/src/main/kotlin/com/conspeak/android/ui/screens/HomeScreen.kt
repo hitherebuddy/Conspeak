@@ -65,6 +65,9 @@ fun HomeScreen(onNavigateToSettings: () -> Unit) {
     val pairingCode = service?.connectionManager?.pairingCode?.collectAsState()
     val peerName = service?.connectionManager?.peerName?.collectAsState()
 
+    // USB mode state
+    var usbMode by remember { mutableStateOf(false) }
+
     // Bind to service
     DisposableEffect(Unit) {
         val intent = Intent(context, AudioStreamService::class.java)
@@ -189,13 +192,100 @@ fun HomeScreen(onNavigateToSettings: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Discovered desktops
-            Text(
-                text = "Available Desktops",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.align(Alignment.Start)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            // USB Mode Toggle
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (usbMode) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "USB Mode",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            if (usbMode) "Connect via USB cable (127.0.0.1)"
+                            else "Connect via Wi-Fi (mDNS discovery)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = usbMode,
+                        onCheckedChange = { usbMode = it }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (usbMode) {
+                // USB Mode: Direct connection to 127.0.0.1
+                Text(
+                    text = "USB Connection",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            "Make sure:",
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("1. Phone connected via USB cable", style = MaterialTheme.typography.bodySmall)
+                        Text("2. USB debugging enabled", style = MaterialTheme.typography.bodySmall)
+                        Text("3. Desktop ran 'Setup USB' in ADB section", style = MaterialTheme.typography.bodySmall)
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                val intent = Intent(context, AudioStreamService::class.java)
+                                context.startForegroundService(intent)
+                                context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+
+                                scope.launch {
+                                    var attempts = 0
+                                    while (service == null && attempts < 50) {
+                                        delay(100)
+                                        attempts++
+                                    }
+
+                                    service?.startStreaming(
+                                        settings = settings,
+                                        host = "127.0.0.1",  // Localhost via ADB reverse
+                                        port = com.conspeak.protocol.Constants.DEFAULT_PORT,
+                                        trustedFp = null  // Will need to pair first time
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Connect via USB")
+                        }
+                    }
+                }
+            } else {
+                // Wi-Fi Mode: mDNS discovery (existing code)
+                Text(
+                    text = "Available Desktops",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
             if (discoveredDesktops.isEmpty()) {
                 Card(
@@ -279,6 +369,7 @@ fun HomeScreen(onNavigateToSettings: () -> Unit) {
                     }
                 }
             }
+            } // End of usbMode if/else
         }
     }
 
