@@ -53,7 +53,7 @@ class DesktopServer(
     var onAudioFrame: ((AudioFrame) -> Unit)? = null
 
     // Trusted client fingerprints (for auto-pair)
-    private val trustedClients = mutableSetOf<String>()
+    private val trustedClients = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
     data class StreamStats(
         val framesReceived: Long = 0,
@@ -127,6 +127,14 @@ class DesktopServer(
                     val msg = FrameCodec.readMessage(inputStream!!) ?: continue
                     handleMessage(msg)
                 }
+            } catch (e: java.io.EOFException) {
+                log.info("Client disconnected")
+                _state.value = State.LISTENING
+                closeClient()
+            } catch (e: java.net.SocketException) {
+                log.warn("Client socket error: ${e.message}")
+                _state.value = State.LISTENING
+                closeClient()
             } catch (e: Exception) {
                 log.error("Client read error", e)
                 _state.value = State.LISTENING

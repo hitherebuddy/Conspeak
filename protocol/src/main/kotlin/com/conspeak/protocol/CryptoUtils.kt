@@ -20,7 +20,7 @@ object CryptoUtils {
      * Uses the JDK's `keytool` CLI to generate the self-signed cert, avoiding
      * dependency on internal sun.security.x509 classes which are restricted in JDK 17+.
      */
-    fun createSelfSignedSslContext(): Pair<SSLContext, String> {
+    fun createSelfSignedSslContext(trustedPeerFingerprint: String? = null): Pair<SSLContext, String> {
         val password = "conspeak"
         val alias = "conspeak"
         val tempFile = File.createTempFile("conspeak-ks-", ".p12")
@@ -43,10 +43,12 @@ object CryptoUtils {
             "-dname", "CN=Conspeak,O=Conspeak,L=Local"
         ).redirectErrorStream(true).start()
 
-        keytoolProcess.inputStream.readBytes() // consume output
+        val keytoolOutput = keytoolProcess.inputStream.use { it.readBytes() }
         val exitCode = keytoolProcess.waitFor()
+        keytoolProcess.destroyForcibly() // ensure process cleanup
         if (exitCode != 0) {
-            throw RuntimeException("keytool failed with exit code $exitCode")
+            tempFile.delete()
+            throw RuntimeException("keytool failed with exit code $exitCode: ${String(keytoolOutput)}")
         }
 
         // Load the generated keystore
@@ -61,8 +63,15 @@ object CryptoUtils {
         val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
         kmf.init(keyStore, password.toCharArray())
 
+        // Use pinning trust manager if we have a trusted fingerprint, otherwise accept all
+        val trustManager: X509TrustManager = if (trustedPeerFingerprint != null) {
+            PinningTrustManager(trustedPeerFingerprint)
+        } else {
+            AcceptAllTrustManager()
+        }
+
         val sslContext = SSLContext.getInstance("TLSv1.3")
-        sslContext.init(kmf.keyManagers, arrayOf(AcceptAllTrustManager()), SecureRandom())
+        sslContext.init(kmf.keyManagers, arrayOf(trustManager), SecureRandom())
 
         val fingerprint = getCertFingerprint(cert)
         return Pair(sslContext, fingerprint)
@@ -101,6 +110,29 @@ object CryptoUtils {
     }
 
     /**
+     * Create an SSLContext that pins a specific certificate fingerprint.
+     * Used for reconnecting to a previously paired peer.
+     */
+    fun createPinnedSslContext(
+        keyStore: KeyStore? = null,
+        keyPassword: CharArray? = null,
+        trustedFingerprint: String
+    ): SSLContext {
+        val sslContext = SSLContext.getInstance("TLSv1.3")
+        val kmf = if (keyStore != null) {
+            KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()).also {
+                it.init(keyStore, keyPassword)
+            }
+        } else null
+        sslContext.init(
+            kmf?.keyManagers,
+            arrayOf(PinningTrustManager(trustedFingerprint)),
+            SecureRandom()
+        )
+        return sslContext
+    }
+
+    /**
      * Trust manager that accepts all certificates.
      * Used during initial pairing; after pairing, pin the specific cert.
      */
@@ -108,5 +140,31 @@ object CryptoUtils {
         override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
         override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
         override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+    }
+
+    /**
+     * Trust manager that only accepts certificates matching a pinned fingerprint.
+     * Used after pairing to prevent MITM attacks on reconnection.
+     */
+    class PinningTrustManager(private val trustedFingerprint: String) : X509TrustManager {
+        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
+            checkPinned(chain)
+        }
+        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
+            checkPinned(chain)
+        }
+        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+
+        private fun checkPinned(chain: Array<out X509Certificate>?) {
+            if (chain.isNullOrEmpty()) {
+                throw java.security.cert.CertificateException("No certificates provided")
+            }
+            val peerFingerprint = getCertFingerprint(chain[0])
+            if (peerFingerprint != trustedFingerprint) {
+                throw java.security.cert.CertificateException(
+                    "Certificate fingerprint mismatch: expected ${trustedFingerprint.take(16)}..., got ${peerFingerprint.take(16)}..."
+                )
+            }
+        }
     }
 }

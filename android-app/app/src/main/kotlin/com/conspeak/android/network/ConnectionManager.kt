@@ -61,6 +61,7 @@ class ConnectionManager {
     var onSessionAccepted: (() -> Unit)? = null
     var onDisconnected: (() -> Unit)? = null
     var onPairingRequired: ((String) -> Unit)? = null // code
+    var onPairingFailed: (() -> Unit)? = null
 
     private var targetHost: String = ""
     private var targetPort: Int = Constants.DEFAULT_PORT
@@ -89,7 +90,10 @@ class ConnectionManager {
     private suspend fun doConnect() {
         _state.value = State.CONNECTING
         try {
-            val (sslContext, fingerprint) = CryptoUtils.createSelfSignedSslContext()
+            // Use certificate pinning when reconnecting to a trusted peer
+            val (sslContext, fingerprint) = CryptoUtils.createSelfSignedSslContext(
+                trustedPeerFingerprint = peerFingerprintTrusted
+            )
             localCertFingerprint = fingerprint
 
             val factory = sslContext.socketFactory
@@ -98,8 +102,10 @@ class ConnectionManager {
 
             socket = factory.createSocket(rawSocket, targetHost, targetPort, true) as SSLSocket
             socket!!.apply {
+                soTimeout = CONNECT_TIMEOUT_MS // timeout for handshake
                 enabledProtocols = arrayOf("TLSv1.3", "TLSv1.2")
                 startHandshake()
+                soTimeout = 0 // reset to no timeout for normal reads
             }
 
             inputStream = socket!!.inputStream
@@ -173,6 +179,12 @@ class ConnectionManager {
                     val msg = FrameCodec.readMessage(inputStream!!) ?: continue
                     handleMessage(msg)
                 }
+            } catch (e: java.io.EOFException) {
+                Log.d(TAG, "Connection closed by peer")
+                handleDisconnect()
+            } catch (e: java.net.SocketException) {
+                Log.w(TAG, "Socket error: ${e.message}")
+                handleDisconnect()
             } catch (e: Exception) {
                 Log.e(TAG, "Reader error", e)
                 handleDisconnect()
@@ -197,6 +209,11 @@ class ConnectionManager {
                     _state.value = State.PAIRED
                     peerFingerprintTrusted = peerCertFingerprint
                     startSession()
+                } else {
+                    Log.w(TAG, "Pairing rejected by desktop")
+                    _state.value = State.DISCONNECTED
+                    onPairingFailed?.invoke()
+                    cleanup()
                 }
             }
             is SessionAccept -> {

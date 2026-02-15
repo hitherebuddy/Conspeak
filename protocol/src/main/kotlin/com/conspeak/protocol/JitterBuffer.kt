@@ -116,6 +116,7 @@ class JitterBuffer(
         return totalLost.toFloat() / total
     }
 
+    @Synchronized
     fun setDelay(delayMs: Int) {
         initialDelayMs = delayMs
     }

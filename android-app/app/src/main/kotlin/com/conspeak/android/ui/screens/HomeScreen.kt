@@ -27,6 +27,7 @@ import com.conspeak.android.data.SettingsStore
 import com.conspeak.android.network.ConnectionManager
 import com.conspeak.android.network.LanDiscovery
 import com.conspeak.android.service.AudioStreamService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -237,6 +238,13 @@ fun HomeScreen(onNavigateToSettings: () -> Unit) {
                                         desktop.fingerprint
                                     } else null
 
+                                    // Wait for service binding to complete before calling methods
+                                    var attempts = 0
+                                    while (service == null && attempts < 50) {
+                                        delay(100)
+                                        attempts++
+                                    }
+
                                     service?.startStreaming(
                                         settings = settings,
                                         host = desktop.host,
@@ -302,7 +310,7 @@ fun HomeScreen(onNavigateToSettings: () -> Unit) {
                                     name = cm.peerName.value ?: "Desktop",
                                     certFingerprint = cm.peerCertFingerprint,
                                     lastIp = "",
-                                    lastPort = 29170
+                                    lastPort = com.conspeak.protocol.Constants.DEFAULT_PORT
                                 )
                             )
                         }

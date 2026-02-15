@@ -102,16 +102,24 @@ class AudioOutputManager {
                 ?.let { AudioSystem.getMixer(it) }
         } else null
 
-        sourceDataLine = if (mixer != null) {
-            mixer.getLine(lineInfo) as SourceDataLine
-        } else {
-            AudioSystem.getLine(lineInfo) as SourceDataLine
-        }
+        try {
+            sourceDataLine = if (mixer != null) {
+                mixer.getLine(lineInfo) as SourceDataLine
+            } else {
+                AudioSystem.getLine(lineInfo) as SourceDataLine
+            }
 
-        // Buffer size: 4 frames worth
-        val bufferBytes = frameSizeSamples * 2 * 4
-        sourceDataLine!!.open(format, bufferBytes)
-        sourceDataLine!!.start()
+            // Buffer size: 4 frames worth
+            val bufferBytes = frameSizeSamples * 2 * 4
+            sourceDataLine!!.open(format, bufferBytes)
+            sourceDataLine!!.start()
+        } catch (e: Exception) {
+            log.error("Failed to open audio device '${deviceName}', falling back to default", e)
+            sourceDataLine = AudioSystem.getLine(lineInfo) as SourceDataLine
+            val bufferBytes = frameSizeSamples * 2 * 4
+            sourceDataLine!!.open(format, bufferBytes)
+            sourceDataLine!!.start()
+        }
 
         _selectedDevice.value = deviceName ?: "Default"
         _isPlaying.value = true
